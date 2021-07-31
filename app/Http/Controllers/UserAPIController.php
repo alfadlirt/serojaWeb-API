@@ -124,7 +124,7 @@ class UserAPIController extends Controller
                 ];
                 return response()->json([
                     'success' => true,
-                    'message' => 'Username Not Found',
+                    'message' => 'User Authenticated',
                     'data'    => $session_data
                 ], 200);
             } else {

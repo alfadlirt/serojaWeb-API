@@ -26,6 +26,6 @@ Route::resource('/event', EventAPIController::class);
 Route::resource('/team', TeamAPIController::class);
 Route::resource('/match', MatchListAPIController::class);
 Route::resource('/user', UserAPIController::class);
-
-//Route::put('/user/up/{id}', [UserAPIController::class, 'updatepass'])->name('user.update_password');
+//User
 Route::put('/user/updatepassword/{user}', [UserAPIController::class, 'updatepassword'])->name('user.update_password');
+Route::post('/user/auth', [UserAPIController::class, 'authentication'])->name('user.auth');
