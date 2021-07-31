@@ -5,19 +5,20 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Haruncpi\LaravelIdGenerator\IdGenerator;
 
 class EventAPIController extends Controller
 {
     public function index()
     {
-        //get data from table events
-        $events = Event::all();
+        //get data from table event
+        $event = Event::all();
 
         //make response JSON
         return response()->json([
             'success' => true,
             'message' => 'List Data Event',
-            'data'    => $events
+            'data'    => $event
         ], 200);
     }
 
@@ -50,8 +51,10 @@ class EventAPIController extends Controller
     {
         //set validation
         $validator = Validator::make($request->all(), [
-            'title'   => 'required',
-            'content' => 'required',
+            'user_id'   => 'required',
+            'event_name' => 'required',
+            'number_of_team' => 'required',
+            'elimination_type' => 'required'
         ]);
 
         //response error validation
@@ -61,8 +64,12 @@ class EventAPIController extends Controller
 
         //save to database
         $event = Event::create([
-            'title'     => $request->title,
-            'content'   => $request->content
+            'id' => IdGenerator::generate(['table' => 'event', 'length' => 10, 'prefix' => 'EVT']),
+            'user_id' => $request->user_id,
+            'event_name' => $request->event_name,
+            'number_of_team' => $request->number_of_team,
+            'elimination_type' => $request->elimination_type,
+            'status' => 'ONGOING'
         ]);
 
         //success save to database
@@ -93,8 +100,7 @@ class EventAPIController extends Controller
     {
         //set validation
         $validator = Validator::make($request->all(), [
-            'title'   => 'required',
-            'content' => 'required',
+            'event_name' => 'required'
         ]);
 
         //response error validation
@@ -109,8 +115,7 @@ class EventAPIController extends Controller
 
             //update event
             $event->update([
-                'title'     => $request->title,
-                'content'   => $request->content
+                'event_name' => $request->event_name
             ]);
 
             return response()->json([

@@ -91,6 +91,58 @@ class UserAPIController extends Controller
     }
 
     /**
+     * user login auth
+     *
+     * @param  mixed $request
+     * @return void
+     */
+    public function authentication(Request $request)
+    {
+        //set validation
+        $validator = Validator::make($request->all(), [
+            'username' => 'required',
+            'password' => 'required'
+        ]);
+
+        //response error validation
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 400);
+        }
+
+        $condition = [
+            'username' => $request->username,
+            'status' => 'A'
+        ];
+        $check = User::where($condition)->first();
+        if ($check) {
+            if (password_verify($request->password, $check['password'])) {
+                $session_data = [
+                    'id' => $check['id'],
+                    'name' => $check['name'],
+                    'username' => $check['username'],
+                    'logged_in' => true
+                ];
+                return response()->json([
+                    'success' => true,
+                    'message' => 'User Authenticated',
+                    'data'    => $session_data
+                ], 200);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Username/Password Not Match'
+                ], 200);
+            }
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Username Not Found'
+            ], 200);
+        }
+
+    }
+
+    /**
      * update
      *
      * @param  mixed $request
