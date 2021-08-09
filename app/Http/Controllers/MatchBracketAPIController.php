@@ -6,7 +6,7 @@ use App\Models\MatchList;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
-class MatchListAPIController extends Controller
+class MatchBracketAPIController extends Controller
 {
     public function index()
     {

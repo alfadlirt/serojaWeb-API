@@ -4,7 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EventAPIController;
 use App\Http\Controllers\TeamAPIController;
-use App\Http\Controllers\MatchListAPIController;
+use App\Http\Controllers\MatchBracketAPIController;
 use App\Http\Controllers\UserAPIController;
 /*
 |--------------------------------------------------------------------------
@@ -24,7 +24,7 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 Route::resource('/event', EventAPIController::class);
 Route::resource('/team', TeamAPIController::class);
-Route::resource('/match', MatchListAPIController::class);
+Route::resource('/match', MatchBracketAPIController::class);
 Route::resource('/user', UserAPIController::class);
 //User
 Route::put('/user/updatepassword/{user}', [UserAPIController::class, 'updatepassword'])->name('user.update_password');

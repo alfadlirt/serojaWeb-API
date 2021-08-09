@@ -15,4 +15,11 @@ class Team extends Model
 
     const CREATED_AT = 'date_created';
     const UPDATED_AT = 'last_modified';
+
+    protected $fillable = array(
+        'id',
+        'event_id',
+        'team_name',
+        'instance'
+    );
 }
