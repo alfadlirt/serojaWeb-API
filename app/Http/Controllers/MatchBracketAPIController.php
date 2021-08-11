@@ -170,9 +170,16 @@ class MatchBracketAPIController extends Controller
                 ]);
             }
             //update matchlist
+            if($bracket['is_end']!=1){
+                $this->moveToNextBracket($bracket['id']);
+            }
+            else{
+                $event = Event::findOrFail($bracket['event_id']);
+                $event->update([
+                    'status'   => "FINISHED"
+                ]);
+            }
             
-            $this->moveToNextBracket($bracket['id']);
-
             return response()->json([
                 'success' => true,
                 'message' => 'MatchList Updated',
