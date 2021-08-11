@@ -28,6 +28,7 @@ class MatchList extends Model
         'next_branch',
         'is_end',
         'is_wo',
+        'is_wo_moved',
         'is_addition',
         'stage_number',
         'index_number',

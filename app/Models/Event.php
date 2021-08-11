@@ -23,6 +23,7 @@ class Event extends Model
         'event_name',
         'number_of_team',
         'elimination_type',
-        'status'
+        'status',
+        'is_saved'
     );
 }

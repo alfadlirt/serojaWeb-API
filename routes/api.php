@@ -28,4 +28,8 @@ Route::resource('/match', MatchBracketAPIController::class);
 Route::resource('/user', UserAPIController::class);
 //User
 Route::put('/user/updatepassword/{user}', [UserAPIController::class, 'updatepassword'])->name('user.update_password');
+Route::put('/event/shuffle/{event}', [EventAPIController::class, 'shuffleTeam'])->name('event.shuffle_team');
+Route::put('/match/inputscore/{match}', [MatchBracketAPIController::class, 'updateSkor'])->name('match.update_skor');
 Route::post('/user/auth', [UserAPIController::class, 'authentication'])->name('user.auth');
+
+Route::get('/getEventCount/{status}', [EventAPIController::class, 'getEventCount'])->name('event.countDashboard');

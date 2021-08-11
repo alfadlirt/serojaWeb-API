@@ -9,6 +9,7 @@ use Haruncpi\LaravelIdGenerator\IdGenerator;
 
 class UserAPIController extends Controller
 {
+   
 
     public function index()
     {
@@ -161,7 +162,7 @@ class UserAPIController extends Controller
         if ($validator->fails()) {
             return response()->json($validator->errors(), 400);
         }
-
+        var_dump($user);
         //find user by ID
         $user = User::findOrFail($user->id);
 

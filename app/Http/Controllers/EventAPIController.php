@@ -11,6 +11,7 @@ use Haruncpi\LaravelIdGenerator\IdGenerator;
 
 class EventAPIController extends Controller
 {
+    
     public function index()
     {
         //get data from table event
@@ -74,7 +75,8 @@ class EventAPIController extends Controller
             'event_name' => $request->event_name,
             'number_of_team' => $request->number_of_team,
             'elimination_type' => $request->elimination_type,
-            'status' => 'ONGOING'
+            'status' => 'ONGOING',
+            'is_saved' => 1
         ]);
 
         $teamlist = json_decode($request->team_list_json, TRUE);
@@ -93,11 +95,15 @@ class EventAPIController extends Controller
         
         //success save to database
         if ($event) {
-            $this->staging($teamlist, $event['id']);
+            $generated_bracket = $this->staging($teamlist, $event['id']);
+            $return_data = [
+                'event' => $event,
+                'bracket' => $generated_bracket
+            ];
             return response()->json([
                 'success' => true,
                 'message' => 'Event Created',
-                'data'    => count($teamlist)
+                'data'    => $return_data
             ], 201);
         }
 
@@ -130,8 +136,15 @@ class EventAPIController extends Controller
         else{
             $bracket = $roundup_team;
         }
-
-        $stage_chopped = $stage-2;
+        $is_full_binary = false;
+        $stage_chopped = 0;
+        if($team%2==0){
+            $is_full_binary=true;
+            $stage_chopped = $stage-1;
+        }else{
+            $stage_chopped = $stage-2;
+        }
+        
         $unpair_el_stage = $rounddown_team/2;
         $addition_bracket = $team-$rounddown_team;
 
@@ -150,6 +163,7 @@ class EventAPIController extends Controller
             'next_branch' => NULL,
             'is_end' => 1,
             'is_wo' => NULL,
+            'is_wo_moved' => NULL,
             'stage_number' => $stage_counter,
             'index_number' => 1,
             'stage_type' => 'FINAL',
@@ -176,6 +190,10 @@ class EventAPIController extends Controller
                   $stage_type="ELIMINATION-FINAL";
                   break;
             }
+            $is_addition_type=NULL;
+            if($stage_counter==$stage){
+                $is_addition_type=0;
+            }
 
             for ($j=1; $j<=$k; $j++) {
                 $mid_bracket=[
@@ -189,6 +207,8 @@ class EventAPIController extends Controller
                     'next_branch' => $bracket_ploted_array[$stage_counter-1][$m]['id'],
                     'is_end' => 0,
                     'is_wo' => 0,
+                    'is_wo_moved' => NULL,
+                    'is_addition' =>$is_addition_type,
                     'stage_number' => $stage_counter,
                     'index_number' => $j,
                     'stage_type' => $stage_type,
@@ -208,66 +228,78 @@ class EventAPIController extends Controller
             $k*=2;
         }
 
+        if($addition_bracket!=0){
+            //Elimination Bracket
+            $m = 1; //index counter
+            $l = 1; //2Hoops Counter
+            for ($i=1; $i<=$unpair_el_stage; $i++) {
+                $el_bracket=[
+                    'id' => IdGenerator::generate(['table' => 'match_bracket', 'length' => 10, 'prefix' => 'BKT']),
+                    'event_id' => $eventID,
+                    'team_a' => NULL,
+                    'team_b' => NULL,
+                    'skor_a' => NULL,
+                    'skor_b' => NULL,
+                    'winner' => NULL,
+                    'next_branch' => $bracket_ploted_array[$stage_counter-1][$m]['id'],
+                    'is_end' => 0,
+                    'is_wo' => 0,
+                    'is_wo_moved' => NULL,
+                    'is_addition' => 0,
+                    'stage_number' => $stage_counter,
+                    'index_number' => $l,
+                    'stage_type' => 'ELIMINATION',
+                    'status' => 'UNASSIGNED'
+                ];
+
+                $bracket_ploted_array[$stage_counter][$l] = MatchList::create($el_bracket);
+                $l+=2;
+                $m++;
+            }
+
         
-        //Elimination Bracket
-        $m = 1; //index counter
-        $l = 1; //2Hoops Counter
-        for ($i=1; $i<=$unpair_el_stage; $i++) {
-            $el_bracket=[
-                'id' => IdGenerator::generate(['table' => 'match_bracket', 'length' => 10, 'prefix' => 'BKT']),
-                'event_id' => $eventID,
-                'team_a' => NULL,
-                'team_b' => NULL,
-                'skor_a' => NULL,
-                'skor_b' => NULL,
-                'winner' => NULL,
-                'next_branch' => $bracket_ploted_array[$stage_counter-1][$m]['id'],
-                'is_end' => 0,
-                'is_wo' => 0,
-                'is_addition' => 0,
-                'stage_number' => $stage_counter,
-                'index_number' => $l,
-                'stage_type' => 'ELIMINATION',
-                'status' => 'UNASSIGNED'
-            ];
-
-            $bracket_ploted_array[$stage_counter][$l] = MatchList::create($el_bracket);
-            $l+=2;
-            $m++;
+            //Aditional Bracket
+            $l = 2; //2Hoops counter
+            $m = 1; //index counter
+            $k = 1;
+            for ($i=1; $i<=$addition_bracket; $i++) {
+                $add_bracket=[
+                    'id' => IdGenerator::generate(['table' => 'match_bracket', 'length' => 10, 'prefix' => 'BKT']),
+                    'event_id' => $eventID,
+                    'team_a' => NULL,
+                    'team_b' => NULL,
+                    'skor_a' => NULL,
+                    'skor_b' => NULL,
+                    'winner' => NULL,
+                    'next_branch' => $bracket_ploted_array[$stage_counter-1][$m]['id'],
+                    'is_end' => 0,
+                    'is_wo' => 0,
+                    'is_wo_moved' => NULL,
+                    'is_addition' => 1,
+                    'stage_number' => $stage_counter,
+                    'index_number' => $l,
+                    'stage_type' => 'ELIMINATION',
+                    'status' => 'UNASSIGNED'
+                ];
+                $bracket_ploted_array[$stage_counter][$l] = MatchList::create($add_bracket);
+                $l+=2;
+                $m++;
+            }
         }
-
-        //Aditional Bracket
-        $l = 2; //2Hoops counter
-        $m = 1; //index counter
-        $k = 1;
-        for ($i=1; $i<=$addition_bracket; $i++) {
-            $add_bracket=[
-                'id' => IdGenerator::generate(['table' => 'match_bracket', 'length' => 10, 'prefix' => 'BKT']),
-                'event_id' => $eventID,
-                'team_a' => NULL,
-                'team_b' => NULL,
-                'skor_a' => NULL,
-                'skor_b' => NULL,
-                'winner' => NULL,
-                'next_branch' => $bracket_ploted_array[$stage_counter-1][$m]['id'],
-                'is_end' => 0,
-                'is_wo' => 0,
-                'is_addition' => 1,
-                'stage_number' => $stage_counter,
-                'index_number' => $l,
-                'stage_type' => 'ELIMINATION',
-                'status' => 'UNASSIGNED'
-            ];
-            $bracket_ploted_array[$stage_counter][$l] = MatchList::create($add_bracket);
-            $l+=2;
-            $m++;
-        }
-
         //Fill In
-        $condition = [
-            'event_id' => $eventID,
-            'stage_type' => 'ELIMINATION'
-        ];
+        if($is_full_binary){
+            $condition = [
+                'event_id' => $eventID,
+                'stage_number' => $stage
+            ];
+        }
+        else{
+            $condition = [
+                'event_id' => $eventID,
+                'stage_type' => 'ELIMINATION'
+            ];
+        }
+        
         $match_list = MatchList::where($condition)->orderBy('is_addition', 'ASC')->get()->toArray();
         $match_list_count = count($match_list);
 
@@ -278,7 +310,7 @@ class EventAPIController extends Controller
         $team_list_array = Team::where($condition)->get()->toArray();
         
         $randomized_team = $this->randomizeTeam($team_list_array);
-        var_dump($match_list);
+        //var_dump($match_list);
         //var_dump($randomized_team);
         $l = 0; //Team Index Counter
         for($i=0; $i<$match_list_count; $i++){
@@ -287,7 +319,8 @@ class EventAPIController extends Controller
                     ->update(
                     [
                         'team_a'   => $randomized_team[$l]['id'],
-                        'team_b'   => $randomized_team[$l+1]['id']
+                        'team_b'   => $randomized_team[$l+1]['id'],
+                        'status'   => 'ONGOING'
                     ]);
                 $l++;
             }
@@ -296,19 +329,224 @@ class EventAPIController extends Controller
                     ->update(
                     [
                         'team_a'   => $randomized_team[$l]['id'],
-                        'is_wo'   => 0
+                        'is_wo'   => 1,
+                        'is_wo_moved' => 0,
+                        'status'   => 'ONGOING'
                     ]);
             }
             $l++;
             
         }
 
+        $condition = [
+            'event_id' => $eventID,
+            'stage_type' => 'ELIMINATION'
+        ];
+        $match_list_randomized = MatchList::where($condition)->orderBy('next_branch', 'ASC')->get();
+        $this->moveWOToNextBracket($eventID, $stage);
+
+        return $match_list_randomized;
     }
+ 
+
+    public static function moveWOToNextBracket($eventID, $stage){
+        $last2stageCounter=$stage;
+        for($i=1;$i<=2;$i++){
+            $condition = [
+                'event_id' => $eventID,
+                'stage_number' => $last2stageCounter,
+                'is_wo' => 1,
+                'is_wo_moved' => 0
+            ];
+            $wo_bracket_array = MatchList::where($condition)->get()->toArray();
+            if($wo_bracket_array){
+                var_dump($wo_bracket_array);
+                if(count($wo_bracket_array)==0){
+                    break;
+                }
+
+                for($j=0;$j<count($wo_bracket_array);$j++){
+                    $condition = [
+                        'id' => $wo_bracket_array[$j]['next_branch']
+                    ];
+                    $next_bracket = MatchList::where($condition)->get()->toArray();
+
+                    $condition = [
+                        'next_branch' => $next_bracket[0]['id']
+                    ];
+                    $child_bracket = MatchList::where($condition)->orderBy('id','ASC')->get()->toArray();
+
+                    if(count($child_bracket)==1){
+                        MatchList::where('id', $next_bracket[0]['id'])
+                        ->update(
+                        [
+                            'is_wo'   => 1
+                        ]);
+                    }
+
+                    if($child_bracket[0]['id']==$wo_bracket_array[$j]['id']){
+                        MatchList::where('id', $next_bracket[0]['id'])
+                        ->update(
+                        [
+                            'team_a'   => $wo_bracket_array[$j]['team_a']
+                        ]);
+                    }
+                    else{
+                        MatchList::where('id', $next_bracket[0]['id'])
+                        ->update(
+                        [
+                            'team_b'   => $wo_bracket_array[$j]['team_a']
+                        ]);
+
+                    }
+
+                    MatchList::where('id', $wo_bracket_array[$j]['id'])
+                        ->update(
+                        [
+                            'status'   => "FINISHED",
+                            'is_wo_moved' => 1
+                        ]);
+                        
+                    
+                }
+            }
+            $last2stageCounter--;
+        }
+
+    }
+
+
+
+    /**
+     * update
+     *
+     * @param  mixed $request
+     * @param  mixed $event
+     * @return void
+     */
+    public function shuffleTeam(Request $request, Event $event)
+    {
+        //set validation
+        $validator = Validator::make($request->all(), [
+            'event_id' => 'required'
+        ]);
+
+        //response error validation
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 400);
+        }
+
+        //find event by ID
+        $event = Event::findOrFail($event->id);
+
+        if ($event) {
+
+            $condition = [
+                'event_id' => $event->id,
+                'stage_type' => 'ELIMINATION'
+            ];
+            $match_list = MatchList::where($condition)->orderBy('is_addition', 'ASC')->get()->toArray();
+            $match_list_count = count($match_list);
+    
+    
+            $condition = [
+                'event_id' => $event->id
+            ];
+            $team_list_array = Team::where($condition)->get()->toArray();
+            
+            $randomized_team = $this->randomizeTeam($team_list_array);
+            var_dump($match_list);
+            //var_dump($randomized_team);
+            $l = 0; //Team Index Counter
+            for($i=0; $i<$match_list_count; $i++){
+                if(isset($randomized_team[$l+1])){
+                    MatchList::where('id', $match_list[$i]['id'])
+                        ->update(
+                        [
+                            'team_a'   => $randomized_team[$l]['id'],
+                            'team_b'   => $randomized_team[$l+1]['id']
+                        ]);
+                    $l++;
+                }
+                else{
+                    MatchList::where('id', $match_list[$i]['id'])
+                        ->update(
+                        [
+                            'team_a'   => $randomized_team[$l]['id'],
+                            'is_wo'   => 0
+                        ]);
+                }
+                $l++;
+                
+            }
+            $condition = [
+                'event_id' => $event->id,
+                'stage_type' => 'ELIMINATION'
+            ];
+            $match_list_randomized = MatchList::where($condition)->orderBy('next_branch', 'ASC')->get();
+            return response()->json([
+                'success' => true,
+                'message' => 'Event Updated',
+                'data'    => $match_list_randomized
+            ], 200);
+        }
+
+        //data event not found
+        return response()->json([
+            'success' => false,
+            'message' => 'Event Not Found',
+        ], 404);
+    }
+
+
+    /**
+     * save permanent
+     *
+     * @param  mixed $request
+     * @param  mixed $event
+     * @return void
+     */
+    public function savePermanently(Request $request, Event $event)
+    {
+        //set validation
+        $validator = Validator::make($request->all(), [
+            'event_id' => 'required'
+        ]);
+
+        //response error validation
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 400);
+        }
+
+        //find event by ID
+        $event = Event::findOrFail($event->id);
+
+        if ($event) {
+
+            $event->update([
+                'is_saved' => 1
+            ]);
+    
+            return response()->json([
+                'success' => true,
+                'message' => 'Event Saved Permanently',
+                'data'    => $event
+            ], 200);
+        }
+
+        //data event not found
+        return response()->json([
+            'success' => false,
+            'message' => 'Event Not Found',
+        ], 404);
+    }
+
+
 
     /** 
         * @return int
     */
-    public function getRounded($number, $is_up){
+    public static function getRounded($number, $is_up){
         $candidates = [2,4,8,16,32];
         $candidates_reversed = array_reverse($candidates);
         $last = null;
@@ -408,5 +646,15 @@ class EventAPIController extends Controller
             'success' => false,
             'message' => 'Event Not Found',
         ], 404);
+    }
+
+    public function getEventCount($status)
+    {
+        $event = Event::where('status', $status)->get()->toArray();
+
+        //make response JSON
+        return response()->json([
+            count($event)
+        ], 200);
     }
 }
