@@ -35,4 +35,8 @@ class MatchList extends Model
         'stage_type',
         'status'
     );
+    public function events()
+    {
+        return $this->belongsTo(\App\Models\Event::class, 'event_id');
+    }
 }

@@ -26,4 +26,9 @@ class Event extends Model
         'status',
         'is_saved'
     );
+
+    public function brackets()
+    {
+        return $this->hasMany(\App\Models\MatchList::class);
+    }
 }

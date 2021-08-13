@@ -25,6 +25,28 @@ class EventAPIController extends Controller
         ], 200);
     }
 
+ /**
+     * show
+     *
+     * @param  mixed $id
+     * @return void
+     */
+    public function getEventByUser($id)
+    {
+        //find event by ID
+        $condition = [
+            'user_id' => $id
+        ];
+        $event = Event::where($condition)->get();
+        //make response JSON
+        return response()->json([
+            'success' => true,
+            'message' => 'Detail Data Event',
+            'data'    => $event
+        ], 200);
+    }
+
+
     /**
      * show
      *
@@ -360,7 +382,7 @@ class EventAPIController extends Controller
             ];
             $wo_bracket_array = MatchList::where($condition)->get()->toArray();
             if($wo_bracket_array){
-                var_dump($wo_bracket_array);
+                //var_dump($wo_bracket_array);
                 if(count($wo_bracket_array)==0){
                     break;
                 }
@@ -400,6 +422,17 @@ class EventAPIController extends Controller
 
                     }
 
+                    $condition = [
+                        'id' => $wo_bracket_array[$j]['next_branch']
+                    ];
+                    $next_bracket = MatchList::where($condition)->get()->toArray();
+                    if($next_bracket[0]['team_a']!=null&&$next_bracket[0]['team_b']!=null){
+                        MatchList::where('id', $next_bracket[0]['id'])
+                        ->update(
+                        [
+                            'status'   => "ONGOING"
+                        ]);    
+                    }
                     MatchList::where('id', $wo_bracket_array[$j]['id'])
                         ->update(
                         [
@@ -455,7 +488,7 @@ class EventAPIController extends Controller
             $team_list_array = Team::where($condition)->get()->toArray();
             
             $randomized_team = $this->randomizeTeam($team_list_array);
-            var_dump($match_list);
+            //var_dump($match_list);
             //var_dump($randomized_team);
             $l = 0; //Team Index Counter
             for($i=0; $i<$match_list_count; $i++){

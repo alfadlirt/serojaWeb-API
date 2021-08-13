@@ -33,3 +33,4 @@ Route::put('/match/inputscore/{match}', [MatchBracketAPIController::class, 'upda
 Route::post('/user/auth', [UserAPIController::class, 'authentication'])->name('user.auth');
 
 Route::get('/getEventCount/{status}', [EventAPIController::class, 'getEventCount'])->name('event.countDashboard');
+Route::get('/getEventUser/{id}', [EventAPIController::class, 'getEventByUser'])->name('event.getByUser');

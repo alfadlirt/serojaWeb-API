@@ -6,6 +6,7 @@ use App\Models\MatchList;
 use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class MatchBracketAPIController extends Controller
 {
@@ -31,12 +32,34 @@ class MatchBracketAPIController extends Controller
     public function show($id)
     {
         //find matchlist by ID
-        $matchlist = MatchList::findOrfail($id);
+  /*      $matchlist = MatchList::with('brackets')
+            ->where('event_id', $id)
+            ->orderBy('stage_number', 'DESC')
+            ->orderBy('index_number', 'ASC')
+            ->get();
+*/
+        $matchlist = DB::table("match_bracket as `a`")
+        ->leftJoin("team as `b`", function($join){
+            $join->on("`a`.team_a", "=", "`b`.id");
+        })
+        ->leftJoin("team as `c`", function($join){
+            $join->on("`a`.team_b", "=", "`c`.id");
+        })
+        ->select("`a`.id", "`a`.event_id", "`b`.team_name as team_a", 
+        "`c`.team_name as team_b", "`a`.skor_a", "`a`.skor_b", 
+        "`a`.winner", "`a`.next_branch", "`a`.is_end", "`a`.is_wo",
+         "`a`.is_wo_moved", "`a`.is_addition", "`a`.stage_number", 
+         "`a`.index_number", "`a`.stage_type", "`a`.date_created",
+          "`a`.last_modified", "`a`.status")
+        ->where("`a`.event_id", "=", $id)
+        ->orderBy('`a`.stage_number', 'DESC')
+        ->orderBy('`a`.index_number', 'ASC')
+        ->get();
 
         //make response JSON
         return response()->json([
             'success' => true,
-            'message' => 'Detail Data MatchList',
+            'message' => 'Bracket List',
             'data'    => $matchlist
         ], 200);
     }
@@ -237,7 +260,7 @@ class MatchBracketAPIController extends Controller
             'id' => $originBracket['next_branch']
         ];
         $next_bracket = MatchList::where($condition)->get()->toArray();
-        if($next_bracket[0]['team_a']!=NULL && $next_bracket[0]['team_a']!=NULL){
+        if($next_bracket[0]['team_a']!=NULL && $next_bracket[0]['team_b']!=NULL){
             MatchList::where('id', $next_bracket[0]['id'])
             ->update(
             [
