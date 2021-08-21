@@ -23,6 +23,12 @@ class Event extends Model
         'event_name',
         'number_of_team',
         'elimination_type',
-        'status'
+        'status',
+        'is_saved'
     );
+
+    public function brackets()
+    {
+        return $this->hasMany(\App\Models\MatchList::class);
+    }
 }
